@@ -1,6 +1,7 @@
 import http from "http";
 import express from "express";
 import cors from "cors";
+import { emit } from "process";
 
 const app = express();
 
@@ -16,25 +17,35 @@ const wsServer = require("socket.io")(httpServer, {
 
 const handleListen = () => console.log("Listening on http://localhost:3001");
 
-let rooms = [];
+let rooms = new Map();
 let users = [];
 
 wsServer.on("connection", (socket) => {
-  console.log("Connect to browser: " + socket.conn.remoteAddress);
-  console.log(socket.adapter.rooms);
-  console.log(socket.adapter.sids);
+  const address = socket.conn.remoteAddress;
+  console.log("Connect to browser: " + address);
+  socket.username = address;
+
+  socket.on("disconnect", () => {
+    console.log("Disconnect from browser: " + address);
+  });
 
   socket.on("username", (username) => {
     socket.username = username;
     console.log("username: " + socket.username);
   });
 
-  socket.on("create_room", (roomname) => {
-    rooms = socket.adapter.rooms;
-    console.log("rooms: " + rooms);
-
+  socket.on("create-room", (roomname, description) => {
     socket.join(roomname);
-    socket.to(roomname).emit("created", rooms);
+    rooms.set(roomname, description);
+    console.log(`✔ ${socket.username}: create room ${roomname}`);
+    socket.broadcast.emit("rooms", Object.fromEntries(rooms));
+  });
+
+  socket.on("rooms", () => {
+    console.log("emit room");
+
+    // map 을 넘기면 빈 오브젝트로 넘어가서 변환해줘야함
+    socket.emit("rooms", Object.fromEntries(rooms));
   });
 });
 
