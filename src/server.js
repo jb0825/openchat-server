@@ -39,17 +39,16 @@ wsServer.on("connection", (socket) => {
     console.log("Disconnect from browser: " + address);
   });
 
-  socket.on("icecandidate", (icecandidate, roomname) => {
-    socket.to(roomname).emit("icecandidate", icecandidate);
+  socket.on("ice", (ice, roomname) => {
+    console.log("ice: " + ice);
+    socket.to(roomname).emit("ice", ice);
   });
 
   socket.on("offer", (offer, roomname) => {
-    console.log("receive offer, send to remote");
     socket.to(roomname).emit("offer", offer);
   });
 
   socket.on("answer", (answer, roomname) => {
-    console.log("receive answer, send to local");
     socket.to(roomname).emit("answer", answer);
   });
 
@@ -68,7 +67,7 @@ wsServer.on("connection", (socket) => {
   socket.on("join-room", (roomname) => {
     console.log("join-room: " + socket.username);
     socket.join(roomname);
-    socket.to(roomname).emit("welcome", socket.username, getUserCount(roomname));
+    socket.to(roomname).emit("welcome", socket.username);
   });
 
   socket.on("rooms", () => {
