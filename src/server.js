@@ -39,6 +39,11 @@ wsServer.on("connection", (socket) => {
     console.log("Disconnect from browser: " + address);
   });
 
+  socket.on("message", (message, roomname) => {
+    console.log(`Message to ${roomname}: ${message}`);
+    socket.to(roomname).emit("message", socket.username, message);
+  });
+
   socket.on("ice", (ice, roomname) => {
     console.log("ice: " + ice);
     socket.to(roomname).emit("ice", ice);
@@ -57,27 +62,32 @@ wsServer.on("connection", (socket) => {
     console.log("username: " + socket.username);
   });
 
-  socket.on("create-room", (roomname, description, createDate) => {
+  socket.on("create-room", (roomname, description, createDate, group) => {
     socket.join(roomname);
-    rooms.set(roomname, { description, createDate });
+    rooms.set(roomname, { description, createDate, group });
     console.log(`✔ ${socket.username}: create room ${roomname}`);
     socket.broadcast.emit("rooms", Object.fromEntries(rooms));
   });
 
   socket.on("join-room", (roomname) => {
-    console.log("join-room: " + socket.username);
+    console.log(`join-room [${roomname}]: ${socket.username}`);
     socket.join(roomname);
     socket.to(roomname).emit("welcome", socket.username);
   });
 
+  socket.on("leave-room", (roomname) => {
+    console.log(`leave-room [${roomname}]: ${socket.username}`);
+    socket.leave(roomname);
+    socket.to(roomname).emit("leave", socket.username);
+  });
+
   socket.on("rooms", () => {
-    console.log("emit room");
     // map 을 넘기면 빈 오브젝트로 넘어가서 변환해줘야함
     socket.emit("rooms", Object.fromEntries(rooms));
   });
 
   socket.on("user-count", (roomname) => {
-    socket.emit("user-count", getUserCount(roomname));
+    socket.to(roomname).emit("user-count", getUserCount(roomname));
   });
 });
 
