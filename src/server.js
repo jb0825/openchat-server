@@ -1,16 +1,17 @@
 import http from "http";
 import express from "express";
 import cors from "cors";
-import { emit } from "process";
 
 const app = express();
+const origin = "http://localhost:3000";
+//const origin = "*";
 
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors({ origin }));
 
 const httpServer = http.createServer(app);
 const wsServer = require("socket.io")(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin,
     methods: ["GET", "POST"],
   },
 });
@@ -73,12 +74,16 @@ wsServer.on("connection", (socket) => {
     console.log(`join-room [${roomname}]: ${socket.username}`);
     socket.join(roomname);
     socket.to(roomname).emit("welcome", socket.username);
+
+    socket.emit("get-user-count", roomname);
   });
 
   socket.on("leave-room", (roomname) => {
     console.log(`leave-room [${roomname}]: ${socket.username}`);
     socket.leave(roomname);
     socket.to(roomname).emit("leave", socket.username);
+
+    socket.emit("get-user-count", roomname);
   });
 
   socket.on("rooms", () => {
@@ -86,8 +91,8 @@ wsServer.on("connection", (socket) => {
     socket.emit("rooms", Object.fromEntries(rooms));
   });
 
-  socket.on("user-count", (roomname) => {
-    socket.to(roomname).emit("user-count", getUserCount(roomname));
+  socket.on("get-user-count", (roomname) => {
+    socket.emit("user-count", getUserCount(roomname), roomname);
   });
 });
 
